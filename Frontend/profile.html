@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <header>
+        <nav>
+            <ul class="tabs">
+                <li class="store-name">Channa Stores</li>
+                <li><a href="products.html" class="tab">Products</a></li>
+                <li><a href="cart.html" class="tab">Cart</a></li>
+                <li><a href="orders.html" class="tab">Orders</a></li>
+                <li><a href="profile.html" class="tab active">Profile</a></li>
+                <li class="signout-tab"><a href="login.html" class="tab">Sign Out</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <h2>User Profile</h2>
+
+        <!-- Update Profile Form -->
+        <form id="update-profile-form">
+            <label for="name">Name:</label>
+            <input type="text" id="name" value="Shenon" required><br><br>
+
+            <label for="email">Email:</label>
+            <input type="email" id="email" value="shen@gmail.com" required><br><br>
+
+            <label for="phone">Phone:</label>
+            <input type="text" id="phone" value="0774567890"><br><br>
+
+            <button type="submit">Update Profile</button>
+        </form>
+
+        <!-- Update Password Section -->
+        <section id="update-password">
+            <h3>Update Password</h3>
+            <form id="update-password-form">
+                <label for="current-password">Current Password:</label>
+                <input type="password" id="current-password" placeholder="Enter current password" required><br><br>
+
+                <label for="new-password">New Password:</label>
+                <input type="password" id="new-password" placeholder="Enter new password" required><br><br>
+
+                <label for="confirm-password">Confirm New Password:</label>
+                <input type="password" id="confirm-password" placeholder="Confirm new password" required><br><br>
+
+                <button type="submit">Update Password</button>
+            </form>
+        </section>
+
+        <!-- Delete Account Section -->
+        <section id="delete-account">
+            <h3>Delete Account</h3>
+            <p>Warning: Deleting your account is irreversible. All your data will be permanently removed.</p>
+            <button id="delete-account-button" style="background-color: red; color: white;">Delete My Account</button>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Shop Management System</p>
+    </footer>
+
+    <script>
+        window.onload = function () {
+            // Get the user data from localStorage
+            const userData = JSON.parse(localStorage.getItem('userData'));
+
+            if (userData) {
+                // Get the user ID from the stored user data
+                const userID = userData.id;
+
+                // Fetch customer data by ID from the API
+                fetch(`http://localhost:8080/api/customers/${userID}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // Populate the form fields with the data returned from the API
+                        document.getElementById('name').value = data.user.username || '';
+                        document.getElementById('email').value = data.user.email || '';
+                        document.getElementById('phone').value = data.phoneNumber || '';
+                        document.getElementById('current-password').value = data.password || '';
+
+                        console.log('User data loaded from API:', data);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching customer data:', error);
+                    });
+            } else {
+                console.log('No user data found in localStorage');
+            }
+        };
+
+
+
+        // Retrieve user data from localStorage
+        const userData = JSON.parse(localStorage.getItem('userData'));
+        const userID = userData ? userData.id : null;
+
+        if (!userID) {
+            console.error('User ID not found in localStorage!');
+        } else {
+            // Update Profile Handler
+            document.getElementById('update-profile-form').addEventListener('submit', function (event) {
+                event.preventDefault();
+
+                const name = document.getElementById('name').value;
+                const email = document.getElementById('email').value;
+                const phone = document.getElementById('phone').value;
+
+                const updatedData = {
+                    username: name,
+                    email: email,
+                    phoneNumber: phone,
+                };
+
+                fetch(`http://localhost:8080/api/customers/${userID}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(updatedData),
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        alert('Profile updated successfully!');
+                        console.log(data);
+                    })
+                    .catch((error) => {
+                        alert('Error updating profile!');
+                        console.error(error);
+                    });
+            });
+
+            // Update Password Handler
+            document.getElementById('update-password-form').addEventListener('submit', function (event) {
+                event.preventDefault();
+
+                const currentPassword = document.getElementById('current-password').value;
+                const newPassword = document.getElementById('new-password').value;
+                const confirmPassword = document.getElementById('confirm-password').value;
+
+                // Validate inputs
+                if (!userData.password) {
+                    alert('Current password not available. Please refresh the page or log in again.');
+                    return;
+                }
+
+                
+                // Check if the current password matches
+
+                console.log(currentPassword, +"  ," + userData.password)
+
+                if (currentPassword !== userData.password) {
+                    alert('Current password is incorrect!');
+                    return;
+                }
+
+                // Check if new password is the same as the current password
+                if (currentPassword === newPassword) {
+                    alert('New password cannot be the same as the current password!');
+                    return;
+                }
+
+                // Check if new password and confirm password match
+                if (newPassword !== confirmPassword) {
+                    alert('New passwords do not match!');
+                    return;
+                }
+
+                // Prepare the updated password data
+                const updatedPasswordData = {
+                    password: newPassword,
+                };
+
+                fetch(`http://localhost:8080/api/customers/${userID}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(updatedPasswordData),
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        alert('Password updated successfully!');
+                        console.log(data);
+                        window.location.href = 'login.html'; // Redirect to login page after password updated
+
+                    })
+                    .catch((error) => {
+                        alert('Error updating password!');
+                        console.error(error);
+                    });
+            });
+
+            // Delete Account Handler
+            document.getElementById('delete-account-button').addEventListener('click', function () {
+                const confirmation = confirm('Are you sure you want to delete your account? This action cannot be undone.');
+                if (confirmation) {
+                    fetch(`http://localhost:8080/api/customers/${userID}`, {
+                        method: 'DELETE',
+                    })
+                        .then((response) => {
+                            if (response.ok) {
+                                alert('Account deleted successfully!');
+                                window.location.href = 'login.html'; // Redirect to login page after account deletion
+                            } else {
+                                alert('Error deleting account!');
+                            }
+                        })
+                        .catch((error) => {
+                            alert('Error deleting account!');
+                            console.error(error);
+                        });
+                }
+            });
+        }
+
+    </script>
+</body>
+
+</html>

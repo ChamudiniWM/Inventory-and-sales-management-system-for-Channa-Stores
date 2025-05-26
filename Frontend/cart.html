@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Cart</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <ul class="tabs">
+				<li class="store-name">Channa Stores</li>
+                <li><a href="products.html" class="tab">Products</a></li>
+                <li><a href="cart.html" class="tab active">Cart</a></li>
+                <li><a href="orders.html" class="tab">Orders</a></li>
+                <li><a href="profile.html" class="tab">Profile</a></li>
+                <li class="signout-tab"><a href="login.html" class="tab">Sign Out</a></li>
+            </ul>
+
+        </nav>
+    </header>
+
+    <main>
+        <h2>Your Cart</h2>
+
+        <!-- Cart Table -->
+        <section id="cart-section">
+            <table id="cart-table">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                        <th>Total</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Dynamically populated cart items will go here -->
+                </tbody>
+            </table>
+            <p id="total-price">Total: Rs. 0.00</p>
+            <button id="checkout-button">Checkout</button>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Shop Management System</p>
+    </footer>
+
+    <script>
+        let cart = [];
+
+        // Function to fetch cart items from the backend
+        function fetchCartItems() {
+            fetch('http://localhost:8080/api/cart/1/items/items') 
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch cart items');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    cart = data;
+                    renderCart();
+                })
+                .catch(error => {
+                    console.error('Error fetching cart items:', error);
+                    alert('Failed to fetch cart items');
+                });
+        }
+
+        // Function to render the cart
+        function renderCart() {
+            const cartTableBody = document.querySelector('#cart-table tbody');
+            cartTableBody.innerHTML = '';
+            let totalPrice = 0;
+
+            cart.forEach(item => {
+                const row = document.createElement('tr');
+                const totalItemPrice = item.price * item.quantity;
+                totalPrice += totalItemPrice;
+
+                row.innerHTML = `
+                    <td>${item.productName}</td>
+                    <td>
+                        <input type="number" value="${item.quantity}" min="0" id="quantity-${item.id}" onchange="updateQuantity(${item.id})">
+                    </td>
+                    <td>Rs.${item.price.toFixed(2)}</td>
+                    <td>Rs.${totalItemPrice.toFixed(2)}</td>
+                    <td><button onclick="removeFromCart(${item.id})">Remove</button></td>
+                `;
+                cartTableBody.appendChild(row);
+            });
+
+            // Update the total price
+            document.getElementById('total-price').textContent = `Total: Rs. ${totalPrice.toFixed(2)}`;
+        }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+function updateQuantity(itemId) {
+            const quantityInput = document.getElementById(`quantity-${itemId}`);
+            const newQuantity = parseInt(quantityInput.value);
+
+            // Validate quantity
+            if (isNaN(newQuantity) || newQuantity < 0) {
+                alert('Please enter a valid non-negative number for quantity!');
+                return;
+            }
+
+            // Update the quantity in the local cart
+            const product = cart.find(item => item.id === itemId);
+            if (!product) {
+                console.error(`Product with ID ${itemId} not found in the cart.`);
+                return;
+            }
+            product.quantity = newQuantity;
+
+            // Update the backend with the new quantity
+            updateCartQuantityInBackend(itemId, newQuantity);
+
+            // Re-render the cart
+            renderCart();
+        }
+
+        function updateCartQuantityInBackend(itemId, newQuantity) {
+            fetch(`http://localhost:8080/api/cart/1/items/${itemId}/quantity`, { 
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ quantity: newQuantity })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => { throw new Error(text) });
+                }
+                return response.json().catch(() => ({})); // Handle non-JSON response
+            })
+            .then(data => {
+                console.log('Cart updated successfully:', data);
+                renderCart();
+            })
+            .catch(error => {
+                console.error('Error updating cart:', error);
+                alert('Failed to update cart. Please try again!');
+            });
+        }
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // Function to remove a product from the cart
+        function removeFromCart(itemId) {
+            fetch(`http://localhost:8080/api/cart/1/items/${itemId}`, { 
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                // Remove the item from the local cart
+                cart = cart.filter(item => item.id !== itemId);
+                // Re-render the cart to reflect changes
+                renderCart();
+            })
+            .catch(error => {
+                console.error('Error removing item from cart:', error);
+                alert('Failed to remove item from cart. Please try again!');
+            });
+        }
+
+        document.getElementById('checkout-button').addEventListener('click', function() {
+            if (cart.length === 0) {
+                alert('Your cart is empty!');
+                return;
+            }
+
+            
+            alert('Order placed successfully!');
+            cart = [];  // Empty the cart after checkout
+            renderCart();  // Re-render the cart
+        });
+
+        // Initial fetch and render of the cart
+        fetchCartItems();
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // Checkout functionality
+        document.getElementById('checkout-button').addEventListener('click', function() {
+            if (cart.length === 0) {
+                alert('Your cart is empty!');
+                return;
+            }
+
+            
+            alert('Order placed successfully!');
+            cart = [];  // Empty the cart after checkout
+            renderCart();  // Re-render the cart
+        });
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // Initial render of the cart
+        
+    </script>
+</body>
+</html>

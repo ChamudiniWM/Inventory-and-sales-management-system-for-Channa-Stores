@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title> 
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="login-container">
+        <h2>Login</h2>
+        <form id="login-form">
+            <label for="email">Email:</label>
+            <input type="text" id="email" name="email" placeholder="Enter your email" required>
+
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" placeholder="Enter your password" required>
+
+            <button type="submit">Login</button>
+        </form>
+        <p class="signup-text">
+            Don't have an account? <a href="signup.html">Sign up</a>
+        </p>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Shop Management System</p>
+    </footer>
+
+    <script>
+        // Secure login handling with error messages and role-based redirection
+
+        const loginForm = document.getElementById('login-form');
+
+        loginForm.addEventListener('submit', async function (event) {
+            event.preventDefault(); // Prevent default form submission
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            console.log(JSON.stringify({ email, password }))
+
+            try {
+                // Fetch user data using email and password
+                const userResponse = await fetch('http://localhost:8080/api/users/login', {
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                if (!userResponse.ok) {
+                    throw new Error('Invalid email or password'); // Handle specific error
+                }
+
+                const user = await userResponse.json();
+
+                console.log(user)
+
+                // Check user role and redirect accordingly (replace with server-side logic for enhanced security)
+                if (!user.role) {
+                    throw new Error('Invalid user role'); // Handle invalid role
+                }
+
+                localStorage.setItem("userData", JSON.stringify(user));
+
+                switch (user.role) {
+                    case 'admin':
+                        window.location.href = 'userhandling03.html';
+                        break;
+                    case 'customer':
+                        window.location.href = 'products.html';
+                        break;
+                    case 'supplier':
+                        window.location.href = 'inventory.html';
+                        break;
+                    default:
+                        throw new Error('Invalid user role'); // Handle unexpected role
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`); // Display error message
+            }
+        });
+    </script>
+</body>
+
+</html>

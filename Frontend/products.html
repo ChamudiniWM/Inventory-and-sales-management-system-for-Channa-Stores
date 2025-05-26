@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products</title>
+    <link rel="stylesheet" href="styles.css">
+
+</head>
+
+<body>
+    <header>
+        <nav>
+            <ul class="tabs">
+                <li class="store-name">Channa Stores</li>
+                <li><a href="products.html" class="tab active">Products</a></li>
+                <li><a href="cart.html" class="tab">Cart</a></li>
+                <li><a href="orders.html" class="tab">Orders</a></li>
+                <li><a href="profile.html" class="tab">Profile</a></li>
+                <li class="signout-tab"><a href="login.html" class="tab">Sign Out</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <h2>Product Catalog</h2>
+
+        <!-- Category Filter Dropdown -->
+        <select id="category-select">
+                <option value="all">All</option>
+                <option value="Beverages">Beverage</option>
+                <option value="Dairy">Dairy</option>
+                <option value="Bakery">Bakery</option>
+                <option value="Staples">Staples</option>
+                <option value="Snacks">Snacks</option>
+                <option value="Health">Health</option>
+                <option value="Household">Household</option>
+        </select>
+        </select>
+
+        <!-- Product List Table -->
+        <section id="product-list">
+            <h3>Product List</h3>
+            <table id="products-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Price</th>
+                        <th>Stock Quantity</th>
+                        <th>Category</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Dynamically populated product rows will go here -->
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <!-- Quantity Pop-Up Modal -->
+    <div id="quantity-modal" class="modal">
+        <div class="modal-content">
+            <span id="close-modal" class="close">&times;</span>
+            <h3>Add to Cart</h3>
+            <p id="modal-product-name"></p>
+            <label for="modal-quantity-input">Enter Quantity:</label>
+            <input type="number" id="modal-quantity-input" min="1" step="1" />
+            <button id="modal-add-to-cart-btn">Add to Cart</button>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Shop Management System</p>
+    </footer>
+
+    <script>
+        let products = [];
+        let selectedProductId = null;
+
+        // Function to render products based on category filter
+        function renderProducts(categoryFilter = 'all') {
+            const productTableBody = document.querySelector('#products-table tbody');
+            productTableBody.innerHTML = '';
+            const filteredProducts = categoryFilter === 'all'
+                ? products
+                : products.filter(product => product.category === categoryFilter);
+            filteredProducts.forEach(product => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${product.id}</td>
+                    <td>${product.name}</td>
+                    <td>Rs.${product.price.toFixed(2)}</td>
+                    <td>${product.quantity}</td>
+                    <td>${product.category}</td>
+                    <td><button onclick="addToCart(${product.id})">Add to Cart</button></td>
+                `;
+                productTableBody.appendChild(row);
+            });
+        }
+
+        // Fetch products from the backend
+        function fetchProducts() {
+            fetch('http://localhost:8080/inventory/products')
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok ' + response.statusText);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    products = data;
+                    renderProducts();
+                })
+                .catch(error => {
+                    console.error('Error fetching products:', error);
+                    alert('Failed to fetch products');
+                });
+        }
+
+
+        // Event listener for category dropdown change
+        document.getElementById('category-select').addEventListener('change', function () {
+            const selectedCategory = this.value;
+            renderProducts(selectedCategory);
+        });
+
+        // Add to cart with modal popup
+        function addToCart(productId) {
+            const selectedProduct = products.find(p => p.id === productId);
+            if (selectedProduct) {
+                selectedProductId = productId;
+                const modal = document.getElementById('quantity-modal');
+                document.getElementById('modal-product-name').textContent =
+                    `Product: ${selectedProduct.name} (Available: ${selectedProduct.quantity})`;
+                document.getElementById('modal-quantity-input').value = '';
+                modal.style.display = 'block';
+            }
+        }
+
+        // Modal event listeners
+        document.getElementById('close-modal').onclick = function () {
+            document.getElementById('quantity-modal').style.display = 'none';
+        };
+
+        window.onclick = function (event) {
+            if (event.target === document.getElementById('quantity-modal')) {
+                document.getElementById('quantity-modal').style.display = 'none';
+            }
+        };
+
+        document.getElementById('modal-add-to-cart-btn').addEventListener('click', function () {
+            const quantity = parseInt(document.getElementById('modal-quantity-input').value);
+            if (isNaN(quantity) || quantity <= 0) {
+                alert('Please enter a valid quantity');
+                return;
+            }
+
+            const selectedProduct = products.find(p => p.id === selectedProductId);
+            if (selectedProduct) {
+                const cartItem = {
+                    productName: selectedProduct.name,
+                    quantity: quantity,
+                    price: selectedProduct.price,
+                    cartId: 1 // Assuming a cartId of 1 for simplicity; replace with actual cartId
+                };
+
+                fetch(`http://localhost:8080/api/cart/1/items`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(cartItem)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                            return response.text().then(text => { throw new Error(text) });
+                        }
+                        return response.json().catch(() => ({})); // Handle non-JSON response
+                    })
+                    .then(data => {
+                        alert('Item added to cart successfully');
+                        document.getElementById('quantity-modal').style.display = 'none';
+                    })
+                    .catch(error => {
+                        console.error('Error adding item to cart:', error);
+                        alert('Failed to add item to cart');
+                    });
+            }
+        });
+
+        // Initial render of all products
+        fetchProducts();
+    </script>
+</body>
+
+</html>

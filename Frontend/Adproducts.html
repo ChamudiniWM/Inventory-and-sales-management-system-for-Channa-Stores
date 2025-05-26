@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products</title>
+    <link rel="stylesheet" href="styles.css">
+
+</head>
+
+<body>
+    <header>
+        <nav>
+            <ul class="tabs">
+                <li class="store-name">Channa Stores</li>
+                <li><a href="userhandling03,html" class="tab active">Users</a>
+                <li><a href="Adproducts.html" class="tab active">Products</a></li>
+                <li><a href="Adprofile.html" class="tab">Profile</a></li>
+                <li class="signout-tab"><a href="login.html" class="tab">Sign Out</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <h2>Product Catalog</h2>
+
+        <!-- Category Filter Dropdown -->
+        <select id="category-select">
+                <option value="all">All</option>
+                <option value="Beverages">Beverage</option>
+                <option value="Dairy">Dairy</option>
+                <option value="Bakery">Bakery</option>
+                <option value="Staples">Staples</option>
+                <option value="Snacks">Snacks</option>
+                <option value="Health">Health</option>
+                <option value="Household">Household</option>
+        </select>
+        </select>
+
+        <!-- Product List Table -->
+        <section id="product-list">
+            <h3>Product List</h3>
+            <table id="products-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Price</th>
+                        <th>Stock Quantity</th>
+                        <th>Category</th>
+                        
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Dynamically populated product rows will go here -->
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Shop Management System</p>
+    </footer>
+
+    <script>
+        let products = [];
+        let selectedProductId = null;
+
+        // Function to render products based on category filter
+        function renderProducts(categoryFilter = 'all') {
+            const productTableBody = document.querySelector('#products-table tbody');
+            productTableBody.innerHTML = '';
+            const filteredProducts = categoryFilter === 'all'
+                ? products
+                : products.filter(product => product.category === categoryFilter);
+            filteredProducts.forEach(product => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${product.id}</td>
+                    <td>${product.name}</td>
+                    <td>Rs.${product.price.toFixed(2)}</td>
+                    <td>${product.quantity}</td>
+                    <td>${product.category}</td>
+                `;
+                productTableBody.appendChild(row);
+            });
+        }
+
+        // Fetch products from the backend
+        function fetchProducts() {
+            fetch('http://localhost:8080/inventory/products')
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok ' + response.statusText);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    products = data;
+                    renderProducts();
+                })
+                .catch(error => {
+                    console.error('Error fetching products:', error);
+                    alert('Failed to fetch products');
+                });
+        }
+
+        // Event listener for category dropdown change
+        document.getElementById('category-select').addEventListener('change', function () {
+            const selectedCategory = this.value;
+            renderProducts(selectedCategory);
+        });
+
+        // Initial render of all products
+        fetchProducts();
+    </script>
+</body>
+
+</html>

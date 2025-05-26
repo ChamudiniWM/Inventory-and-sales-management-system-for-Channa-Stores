@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Management</title>
+    <link rel="stylesheet" href="styles.css">
+
+</head>
+
+<body>
+    <header>
+        <nav>
+            <ul class="tabs">
+                <li class="store-name">Channa Stores</li>
+                <li><a href="inventory.html" class="tab active">Inventory</a></li>
+                <li><a href="Sorders.html" class="tab">Orders</a></li>
+                <li><a href="Sprofile.html" class="tab">Profile</a></li>
+                <li class="signout-tab"><a href="login.html" class="tab">Sign Out</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <h2>Inventory Management</h2>
+
+        <!-- Add New Product Form -->
+        <section id="add-product">
+            <h3>Add New Product</h3>
+            <form id="add-product-form">
+                <label for="product-id">Product ID:</label>
+                <input type="number" id="product-id" min="1" required> <!-- Unique ID -->
+
+                <label for="product-name">Product Name:</label>
+                <input type="text" id="product-name" required>
+
+                <label for="product-price">Price:</label>
+                <input type="number" id="product-price" min="0" required> <!-- Restrict negative values -->
+
+                <label for="product-quantity">Stock Quantity:</label>
+                <input type="number" id="product-quantity" min="0" required> <!-- Restrict negative values -->
+
+                <label for="product-category">Category:</label>
+                <select id="product-category" required>
+                        <option value="all">All</option>
+                        <option value="Beverages">Beverage</option>
+                        <option value="Dairy">Dairy</option>
+                        <option value="Bakery">Bakery</option>
+                        <option value="Staples">Staples</option>
+                        <option value="Snacks">Snacks</option>
+                        <option value="Health">Health</option>
+                        <option value="Household">Household</option>
+                </select>
+
+                <button type="submit">Add Product</button>
+            </form>
+        </section>
+
+        <!-- Update Product Form -->
+        <section id="update-product">
+            <h3>Update Product</h3>
+            <form id="update-product-form">
+                <label for="update-product-id">Product ID:</label>
+                <input type="number" id="update-product-id" required>
+
+                <label for="update-product-name">Product Name:</label>
+                <input type="text" id="update-product-name">
+
+                <label for="update-product-price">Price:</label>
+                <input type="number" id="update-product-price" min="0"> <!-- Restrict negative values -->
+
+                <label for="update-product-quantity">Stock Quantity:</label>
+                <input type="number" id="update-product-quantity" min="0"> <!-- Restrict negative values -->
+
+                <label for="update-product-category">Category:</label>
+                <select id="update-product-category">
+                        <option value="all">All</option>
+                        <option value="Beverages">Beverage</option>
+                        <option value="Dairy">Dairy</option>
+                        <option value="Bakery">Bakery</option>
+                        <option value="Staples">Staples</option>
+                        <option value="Snacks">Snacks</option>
+                        <option value="Health">Health</option>
+                        <option value="Household">Household</option>
+                </select>
+
+                <button type="submit">Update Product</button>
+            </form>
+        </section>
+
+        <!-- Delete Product Form -->
+        <section id="delete-product">
+            <h3>Delete Product</h3>
+            <form id="delete-product-form">
+                <label for="delete-product-id">Product ID:</label>
+                <input type="number" id="delete-product-id" required>
+                <button type="submit">Delete Product</button>
+            </form>
+        </section>
+
+        <!-- Product List Table -->
+        <section id="product-list">
+            <h3>Product List</h3>
+            <table id="products-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Price</th>
+                        <th>Stock Quantity</th>
+                        <th>Category</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Dynamically populated product rows will go here -->
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Shop Management System</p>
+    </footer>
+
+    <!-- JavaScript for CRUD Operations -->
+    <script>
+        // Dummy product data (to be replaced by actual DB data)
+        const products = [
+            { id: 1, name: 'Product 1', price: 10.00, quantity: 100, category: 'Category A' },
+            { id: 2, name: 'Product 2', price: 15.00, quantity: 50, category: 'Category B' },
+        ];
+
+        let actionType = '';
+        let actionData = null;
+
+        // Function to render the product list in the table
+        function renderProducts() {
+            fetch('http://localhost:8080/inventory/products')
+                .then(response => response.json())
+                .then(data => {
+                    const productTableBody = document.querySelector('#products-table tbody');
+                    productTableBody.innerHTML = '';
+                    data.forEach(product => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                <td>${product.id}</td>
+                <td>${product.name}</td>
+                <td>Rs.${product.price.toFixed(2)}</td>
+                <td>${product.quantity}</td>
+                <td>${product.category}</td>
+                <td>
+                    <button onclick="editProduct(${product.id})">Edit</button>
+                    <button onclick="confirmDeleteProduct(${product.id})">Delete</button>
+                </td>
+            `;
+                        productTableBody.appendChild(row);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to fetch products');
+                });
+        }
+
+        // Function to validate unique product ID
+        function isProductIdUnique(id) {
+            return !products.some(product => product.id === id);
+        }
+
+        // Add product
+        document.getElementById('add-product-form').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const newProductId = parseInt(document.getElementById('product-id').value);
+            const newProductName = document.getElementById('product-name').value;
+            const newProductPrice = parseFloat(document.getElementById('product-price').value);
+            const newProductQuantity = parseInt(document.getElementById('product-quantity').value);
+            const newProductCategory = document.getElementById('product-category').value;
+
+            const newProduct = {
+                id: newProductId,
+                name: newProductName,
+                price: newProductPrice,
+                quantity: newProductQuantity,
+                category: newProductCategory,
+            };
+
+            fetch('http://localhost:8080/inventory/product/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(newProduct)
+            })
+                .then(response => response.text())
+                .then(data => {
+                    alert("Product added successfully!");
+                    renderProducts(); // You may need to fetch the updated list of products from the backend
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to add product');
+                });
+        });
+
+        // Update product
+        document.getElementById('update-product-form').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const productId = parseInt(document.getElementById('update-product-id').value);
+            const updatedName = document.getElementById('update-product-name').value;
+            const updatedPrice = parseFloat(document.getElementById('update-product-price').value);
+            const updatedQuantity = parseInt(document.getElementById('update-product-quantity').value);
+            const updatedCategory = document.getElementById('update-product-category').value;
+
+            const updatedProduct = {
+                id: productId,
+                name: updatedName,
+                price: updatedPrice,
+                quantity: updatedQuantity,
+                category: updatedCategory,
+            };
+
+            fetch('http://localhost:8080/inventory/product/update', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updatedProduct)
+            })
+                .then(response => response.text())
+                .then(data => {
+                    alert("Product updated successfully!");
+                    renderProducts(); // You may need to fetch the updated list of products from the backend
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to update product');
+                });
+        });
+
+        // Delete product
+        document.getElementById('delete-product-form').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const productId = parseInt(document.getElementById('delete-product-id').value);
+
+            fetch(`http://localhost:8080/inventory/product/${productId}`, {
+                method: 'DELETE'
+            })
+                .then(response => {
+                    if (response.ok) {
+                        alert("Product deleted successfully!");
+                        renderProducts(); // You may need to fetch the updated list of products from the backend
+                    } else {
+                        alert('Failed to delete product');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to delete product');
+                });
+        });
+
+        // Edit product functionality
+        function editProduct(productId) {
+            fetch(`http://localhost:8080/inventory/product/${productId}`)
+                .then(response => response.json())
+                .then(product => {
+                    document.getElementById('update-product-id').value = product.id;
+                    document.getElementById('update-product-name').value = product.name;
+                    document.getElementById('update-product-price').value = product.price;
+                    document.getElementById('update-product-quantity').value = product.quantity;
+                    document.getElementById('update-product-category').value = product.category;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to fetch product details');
+                });
+        }
+
+        // Confirm delete product
+        function confirmDeleteProduct(id) {
+            const product = products.find(p => p.id === id);
+            if (product && confirm(`Are you sure you want to delete ${product.name}?`)) {
+                const productIndex = products.findIndex(p => p.id === id);
+                products.splice(productIndex, 1);
+                renderProducts();
+                alert("Product deleted successfully!");
+            }
+        }
+
+        // Initial render of the product list
+        renderProducts();
+    </script>
+</body>
+
+</html>

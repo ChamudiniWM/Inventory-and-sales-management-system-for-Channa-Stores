@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User handling</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .notification {
+            color: red;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .confirmation-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .confirmation-modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .confirmation-modal button {
+            margin: 10px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <nav>
+            <ul class="tabs">
+                <li class="store-name">Channa Stores</li>
+                <li><a href="userhandling03,html" class="tab active">Users</a>
+                <li><a href="Adproducts.html" class="tab">Products</a></li>
+                <li><a href="Adprofile.html" class="tab">Profile</a></li>
+                <li class="signout-tab"><a href="login.html" class="tab">Sign Out</a></li>
+            </ul>
+        </nav>
+
+        <h1> &nbsp; Account Management</h1>
+    </header>
+
+    <main>
+        <h2>User Management</h2>
+
+        <!-- Add New Account Form -->
+        <section id="add-account">
+            <h3>Add New Account</h3>
+            <form id="add-account-form" onsubmit="event.preventDefault(); addAccount(event)">
+                <label for="account-name">Account Name:</label>
+                <input type="text" id="account-name" required>
+
+                <label for="account-email">Email:</label>
+                <input type="email" id="account-email" required>
+
+                <label for="account-password">Password:</label>
+                <input type="password" id="account-password" required>
+
+                <label for="account-role">Role:</label>
+                <select id="account-role" required>
+                    <option value="supplier">Supplier</option>
+                    <option value="admin">Admin</option>
+                </select>
+
+                <label for="account-phoneNo">Phone No:</label>
+                <input type="text" id="account-phoneNo" required>
+
+                <label for="account-company">Company:</label>
+                <input type="text" id="account-company" required>
+
+                <label for="account-address">Address:</label>
+                <input type="text" id="account-address" required>
+
+                <button type="submit">Add Account</button>
+            </form>
+
+            <div id="add-notification" class="notification"></div>
+        </section>
+
+        <!-- Update Account Form -->
+        <section id="update-account">
+            <h3>Search Account</h3>
+            <form id="update-account-form" onsubmit="event.preventDefault(); updateAccount();">
+                <label for="search-update">Search by ID or Name:</label>
+                <input type="text" id="search-update" placeholder="Enter ID or Name">
+                <button type="button" onclick="searchAccounts('update')">Search</button>
+                <button type="button" onclick="clearSearch()">Clear Search</button>
+                <div id="update-notification" class="notification"></div>
+
+                <h4>Edit Account</h4>
+                <label for="update-id">ID:</label>
+                <input required type="text" id="update-id" disabled>
+
+                <label for="update-name">Account Name:</label>
+                <input required type="text" id="update-name">
+
+                <label for="update-email">Email:</label>
+                <input required type="email" id="update-email">
+
+                <label for="update-password">Password:</label>
+                <input required type="password" id="update-password">
+
+
+                <label for="update-role">Role:</label>
+                <select id="update-role" required>
+                    <option value="supplier">Supplier</option>
+                    <option value="customer">Customer</option>
+                    <option value="admin">Admin</option>
+                </select>
+
+
+                <label for="update-phoneNo">Phone No:</label>
+                <input required type="text" id="update-phoneNo">
+
+                <label for="update-company">Company:</label>
+                <input required type="text" id="update-company">
+
+                <label for="update-address">Address:</label>
+                <input required type="text" id="update-address">
+
+                <button type="submit">Update Account</button>
+            </form>
+
+        </section>
+
+        <!-- Delete Account Form -->
+        <section id="delete-account">
+            <h3>Delete Account</h3>
+            <form id="delete-account-form">
+                <label for="delete-search">Search by ID, Role, Email, or Company:</label>
+                <input type="text" id="delete-search" placeholder="Enter ID, Role, Email, or Company">
+                <button type="button" onclick="searchAccounts('delete')">Search</button>
+                <button type="button" onclick="clearSearch()">Clear Search</button>
+                <div id="delete-notification" class="notification"></div>
+            </form>
+        </section>
+
+        <!-- Account List Table -->
+        <section id="account-list">
+            <h3>Account List</h3>
+            <table id="account-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Password</th>
+                        <th>Role</th>
+                        <th>Phone No</th>
+                        <th>Company</th>
+                        <th>Address</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Dynamically populated rows -->
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Confirmation Modal -->
+        <div id="confirmation-modal" class="confirmation-modal">
+            <div class="confirmation-modal-content">
+                <p>Are you sure you want to delete this account?</p>
+                <button onclick="confirmDelete()">Yes</button>
+                <button onclick="closeModal()">No</button>
+            </div>
+        </div>
+    </main>
+    <footer>
+        <p>&copy; 2024 Shop Management System</p>
+    </footer>
+
+    <script>
+
+
+        let accounts = [];
+        
+        async function loadAccounts() {
+            const customerResponse = await fetch('http://localhost:8080/api/customers');
+            const supplierResponse = await fetch('http://localhost:8080/api/suppliers');
+
+            if (customerResponse.ok && supplierResponse.ok) {
+                const customers = await customerResponse.json();
+                const suppliers = await supplierResponse.json();
+
+                // merge customers and suppliers and normalize data
+                accounts = [
+                    ...customers.map(customer => ({
+                        ...customer,
+                        company: 'N/A',  // default value for customers
+                        address: 'N/A',  // default value for customers
+                    })),
+                    ...suppliers  // suppliers already have company and address
+                ];
+
+                // render the accounts in the table
+                console.log(accounts);
+                renderAccounts(accounts);
+            } else {
+                console.error('Failed to load data from API');
+            }
+        }
+
+        loadAccounts();
+
+        // function to render accounts in the table
+        function renderAccounts(filteredAccounts = []) {
+            const tableBody = document.querySelector("#account-table tbody");
+            tableBody.innerHTML = "";
+
+            // check if filteredAccounts is an array
+            if (!Array.isArray(filteredAccounts)) {
+                console.error("Expected an array, but received:", filteredAccounts);
+                return;  // exit the function if not an array
+            }
+
+            filteredAccounts.forEach(account => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+            <td>${account.id}</td>
+            <td>${account.user.username}</td>
+            <td>${account.user.email}</td>
+            <td>${account.user.password || 'N/A'}</td>
+            <td>${account.user.role}</td>
+            <td>${account.phoneNumber || 'N/A'}</td>
+            <td>${account.company}</td>
+            <td>${account.address}</td>
+            <td>
+                <button onclick="editAccount(${account.id})">Edit</button>
+                <button onclick="confirmDelete(${account.id})">Delete</button>
+            </td>
+        `;
+                tableBody.appendChild(row);
+            });
+        }
+
+
+        // function to add a new account
+        function addAccount() {
+            const name = document.getElementById("account-name").value.trim();
+            const email = document.getElementById("account-email").value.trim().toLowerCase();
+            const password = document.getElementById("account-password").value.trim();
+            const role = document.getElementById("account-role").value.trim();
+            const phoneNo = document.getElementById("account-phoneNo").value.trim();
+            const company = document.getElementById("account-company").value.trim();
+            const address = document.getElementById("account-address").value.trim();
+
+            // check for duplicate email 
+            const emailExists = accounts.some(account => account.email === email);
+            if (emailExists) {
+                document.getElementById("add-notification").textContent = "Email already exists. Please use a different email.";
+                return;
+            } else {
+                document.getElementById("add-notification").textContent = "";
+            }
+
+            // validate if all fields are filled
+            if (name && email && password && role && phoneNo && company && address) {
+                // step 1: Create user via the API
+                const userPayload = {
+                    username: name,
+                    email: email,
+                    password: password,
+                    role: role
+                };
+
+                // call the user API to create a user
+                fetch('http://localhost:8080/api/users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userPayload)
+                })
+                    .then(response => response.json())
+                    .then(userData => {
+                        console.log(userData)
+                        // step 2: if user creation is success, get user ID & create supplier
+                        const userId = userData.id;
+                        const supplierPayload = {
+                            userId: userId,
+                            company: company,
+                            address: address,
+                            phoneNumber: phoneNo
+                        };
+
+                        console.log(supplierPayload)
+
+                        // call the supplier API create a supplier
+                        return fetch('http://localhost:8080/api/suppliers', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(supplierPayload)
+                        });
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            return response.json(); // Successfully created supplier
+                        } else {
+                            throw new Error('Failed to create supplier');
+                        }
+                    })
+                    .then(supplierData => {
+                        // both user and supplier are created, show success reload page
+                        alert("Account added successfully!");
+                        
+                        window.location.reload(); // reload the page
+                    })
+                    .catch(error => {
+                        // handle errors that occur during user or supplier creation
+                        console.error('Error during account creation:', error);
+                        alert("There was an error creating the account. Please try again.");
+                    });
+
+                // reset the form
+                document.getElementById("add-account-form").reset();
+            } else {
+                alert("Please fill in all fields.");
+            }
+        }
+
+        // function to edit account (pre-fill the update form)
+        function editAccount(accountId) {
+            const account = accounts.find(acc => acc.id === accountId);
+
+            if (account) {
+                // pre-fill the update form fields with the account data
+                document.getElementById("update-id").value = account.id;
+                document.getElementById("update-name").value = account.user.username;  
+                document.getElementById("update-email").value = account.user.email;
+                document.getElementById("update-password").value = account.user.password || '';  // default to empty if not available
+                document.getElementById("update-role").value = account.user.role;
+                document.getElementById("update-phoneNo").value = account.phoneNumber || '';  // default to empty if not available
+                document.getElementById("update-company").value = account.company || '';  // default to empty if not available
+                document.getElementById("update-address").value = account.address || '';  // default to empty if not available
+            } else {
+                console.error("Account not found");
+            }
+        }
+
+
+        // function to update an account
+        function updateAccount() {
+            const id = parseInt(document.getElementById("update-id").value);
+            const name = document.getElementById("update-name").value.trim();
+            const email = document.getElementById("update-email").value.trim().toLowerCase();
+            const password = document.getElementById("update-password").value.trim();
+            const role = document.getElementById("update-role").value.trim();
+            const phoneNo = document.getElementById("update-phoneNo").value.trim();
+            const company = document.getElementById("update-company").value.trim();
+            const address = document.getElementById("update-address").value.trim();
+
+            const accountIndex = accounts.findIndex(acc => acc.id === id);
+            if (accountIndex !== -1) {
+                // check if the updated email is unique (if changed)
+                const emailExists = accounts.some(acc => acc.email === email && acc.id !== id);
+                if (emailExists) {
+                    document.getElementById("update-notification").textContent = "Email already exists. Please use a different email.";
+                    return;
+                } else {
+                    document.getElementById("update-notification").textContent = "";
+                }
+
+                // check if role is 'supplier'
+                if (role !== 'supplier') {
+                    alert("Only suppliers can be updated.");
+                    return;
+                }
+
+                // update account details in local state
+                const updatedAccount = {
+                    ...accounts[accountIndex],
+                    name,
+                    email,
+                    password,
+                    role,
+                    phoneNo,
+                    company,
+                    address,
+                };
+
+                // Send PUT request to server to update supplier account
+                const apiEndpoint = `http://localhost:8080/api/suppliers/${id}`;
+
+                fetch(apiEndpoint, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        company: updatedAccount.company,
+                        address: updatedAccount.address,
+                        phoneNumber: updatedAccount.phoneNo,
+                        password: updatedAccount.password,
+                        email: updatedAccount.email,
+                        username: updatedAccount.name,
+                    }),
+                })
+                    .then(response => {
+                        // Log the entire response to inspect it
+                        console.log("Response Object:", response);
+
+                        // check response status code to determine success
+                        if (response.ok) {
+                            // If the request was successful (status 200-299)
+                            return response.json();  // Parse the response body as JSON
+                        } else {
+                            throw new Error(`Failed with status: ${response.status}`);
+                        }
+                    })
+                    .then(data => {
+                        // handle the parsed JSON data, if necessary
+                        console.log("Response Data:", data);
+
+                        // update the local list if the API request was successful
+                        accounts[accountIndex] = updatedAccount;
+                        renderAccounts(); // Re-render the account list
+                        alert("Account updated successfully!");
+                    })
+                    .catch(error => {
+                        // handle error, which includes non-2xx responses
+                        console.error("Error updating account:", error);
+                        alert("Error updating account. Please try again.");
+                    });
+
+                // Reset the update form
+                document.getElementById("update-account-form").reset();
+                document.getElementById("update-id").value = "";
+            } else {
+                alert("Account not found.");
+            }
+        }
+
+
+
+
+
+
+        // Function to search accounts for update or delete
+        function searchAccounts(action) {
+            const searchValue = document.getElementById(action === 'update' ? 'search-update' : 'delete-search').value.trim().toLowerCase();
+
+            if (!searchValue) {
+                document.getElementById(`${action}-notification`).textContent = "Please enter a search term.";
+                return;
+            }
+
+            let filteredAccounts = accounts.filter(account => {
+                const accountData = [
+                    account.id.toString(), // Account ID
+                    account.user.username.toLowerCase(), // Account Name
+                    account.user.email.toLowerCase(), // Account Email
+                    account.user.role.toLowerCase(), // Account Role
+                    account.phoneNumber ? account.phoneNumber.toLowerCase() : "", // Phone number (nullable)
+                    account.company.toLowerCase(), // Company
+                ];
+
+                // Check if any of the fields match the search value
+                return accountData.some(data => data.includes(searchValue));
+            });
+
+            if (filteredAccounts.length === 0) {
+                document.getElementById(`${action}-notification`).textContent = "No accounts found.";
+            } else {
+                document.getElementById(`${action}-notification`).textContent = "";
+            }
+
+            renderAccounts(filteredAccounts); // Render the filtered accounts
+        }
+
+        function clearSearch() {
+            // Clear the search input fields
+            document.getElementById('search-update').value = '';  // Assuming the search input for update
+            document.getElementById('delete-search').value = '';  // Assuming the search input for delete
+
+            // Reset the notifications to empty
+            document.getElementById('update-notification').textContent = '';
+            document.getElementById('delete-notification').textContent = '';
+
+            // Re-render all accounts by calling the renderAccounts function with the full list
+            renderAccounts(accounts);  // Assuming 'accounts' is the full data of all accounts
+        }
+
+
+
+
+        // Function to show the delete confirmation modal
+
+        // Function to confirm deletion
+        function confirmDelete(deleteId) {
+            if (deleteId !== null) {
+                // Find the account by ID
+                const accountToDelete = accounts.find(acc => acc.id === deleteId);
+
+                // Check if the account exists
+                if (!accountToDelete) {
+                    alert("Account not found.");
+                    return;
+                }
+
+                // Determine the appropriate API endpoint based on the role
+                let apiEndpoint = '';
+                if (accountToDelete.user.role === 'customer') {
+                    apiEndpoint = `http://localhost:8080/api/customers/${deleteId}`;
+                } else if (accountToDelete.user.role === 'supplier') {
+                    apiEndpoint = `http://localhost:8080/api/suppliers/${deleteId}`;
+                }
+
+                // Make the API call to delete the account
+                fetch(apiEndpoint, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // Add any necessary authorization headers, e.g., token
+                        // 'Authorization': 'Bearer your_token_here'
+                    }
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            // Remove the account from the local list after successful API call
+                            accounts = accounts.filter(acc => acc.id !== deleteId);
+                            renderAccounts(); // Re-render the updated account list
+                            alert("Account deleted successfully!");
+                        } else {
+                            alert("Failed to delete account.");
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error deleting account:", error);
+                        alert("Error deleting account. Please try again.");
+                    });
+
+                // Reset deleteId and close the modal
+                deleteId = null;
+                closeModal();
+            }
+        }
+
+
+        // Function to close the delete confirmation modal
+        function closeModal() {
+            document.getElementById("confirmation-modal").style.display = "none";
+        }
+
+        // Prevent adding accounts with duplicate emails
+        // Already handled in addAccount and updateAccount functions
+
+        // Initial render
+        document.addEventListener("DOMContentLoaded", renderAccounts);
+    </script>
+</body>
+
+</html>
